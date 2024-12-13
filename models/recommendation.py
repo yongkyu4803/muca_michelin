@@ -12,87 +12,87 @@ class RecommendationEngine:
         사용자의 상태를 기반으로 식당을 추천합니다.
         """
         try:
-            # 먼저 식당 데이터를 가져옴
-            restaurants_data = self.sheets_service.get_data('시트1!A1:H100')
+            # 식당 데이터를 가져옴
+            restaurants_data = self.sheets_service.get_data()
+            print(f"가져온 식당 데이터: {len(restaurants_data)} 개")  # 디버깅 로그
             
-            # 식권대장 필터링이 필요한 경우, 미리 필터링
+            # 식권대장 필터링
             if use_pay_service:
-                restaurants_data = restaurants_data[
-                    restaurants_data['식권대장'].str.upper() == 'Y'
-                ]
+                restaurants_data = restaurants_data[restaurants_data['식권대장'].str.upper() == 'Y']
+                print(f"식권대장 사용 가능 식당: {len(restaurants_data)} 개")  # 디버깅 로그
                 if restaurants_data.empty:
-                    return {
+                    return [{
                         'restaurant_name': '추천 실패',
                         'menu': '추천 실패',
                         'address': '추천 실패',
                         'review': '식권대장 사용 가능한 식당이 없습니다.'
-                    }
+                    }]
             
             # GPT로부터 추천 받기
             gpt_response = self.gpt_service.get_recommendation(status, restaurants_data)
             
             # GPT 응답 파싱
-            recommendation = self._parse_gpt_response(gpt_response)
+            recommendations = self._parse_gpt_response(gpt_response)
             
-            if not recommendation:
-                raise Exception("GPT 응답을 파싱할 수 없습니다.")
-            
-            return recommendation
+            return recommendations if recommendations else None
             
         except Exception as e:
-            return {
+            print(f"추천 생성 중 오류 발생: {str(e)}")
+            return [{
                 'restaurant_name': '추천 실패',
                 'menu': '추천 실패',
                 'address': '추천 실패',
-                'review': '죄송합니다. 추천 과정에서 오류가 발생했습니다.'
-            }
+                'review': '죄송합니다. 추천 과정에서 오류가 발생했습니다: ' + str(e)
+            }]
 
     def _parse_gpt_response(self, response):
         """GPT 응답을 파싱하여 딕셔너리로 변환합니다."""
         try:
             if not isinstance(response, str):
+                print("응답이 문자열이 아닙니다:", response)
                 return None
-                
-            lines = response.strip().split('\n')
-            result = {}
             
-            # 필수 키 목록
-            required_keys = {'카테고리', '메뉴', '식당명', '주소', '한줄평'}
-            found_keys = set()
+            # 각 추천을 분리
+            recommendations = response.split('\n\n')
+            results = []
             
-            for line in lines:
-                line = line.strip()
-                if not line or ':' not in line:
+            for recommendation in recommendations:
+                if not recommendation.strip():
                     continue
-                    
-                key, value = line.split(':', 1)
-                key = key.strip()
-                value = value.strip()
                 
-                if key in required_keys:
-                    found_keys.add(key)
-                    
-                # 키 이름 매핑
-                key_mapping = {
-                    '카테고리': 'category',
-                    '감정1': 'emotion1',
-                    '감정2': 'emotion2',
-                    '메뉴': 'menu',
-                    '식당명': 'restaurant_name',
-                    '주소': 'address',
-                    '한줄평': 'review'
-                }
+                lines = recommendation.strip().split('\n')
+                result = {}
                 
-                if key in key_mapping:
-                    result[key_mapping[key]] = value.strip('[]')
+                for line in lines:
+                    line = line.strip()
+                    if ':' in line:
+                        key, value = line.split(':', 1)
+                        key = key.strip()
+                        value = value.strip()
+                        if key not in ['1번 추천', '2번 추천', '3번 추천']:
+                            result[key] = value
+                
+                if result:
+                    # 필수 필드 확인
+                    required_fields = ['카테고리', '감정1', '감정2', '메뉴', '식당명', '주소', '한줄평']
+                    if all(field in result for field in required_fields):
+                        # 키 이름을 영문으로 변환
+                        translated_result = {
+                            'restaurant_name': result['식당명'],
+                            'menu': result['메뉴'],
+                            'address': result['주소'],
+                            'review': result['한줄평'],
+                            'category': result['카테고리'],
+                            'emotion1': result['감정1'],
+                            'emotion2': result['감정2']
+                        }
+                        results.append(translated_result)
             
-            # 모든 필수 키가 있는지 확인
-            if not required_keys.issubset(found_keys):
-                return None
-                
-            return result
+            return results if results else None
             
         except Exception as e:
+            print(f"파싱 오류: {str(e)}")
+            print(f"원본 응답: {response}")
             return None
 
     def _filter_by_pay_service(self, recommendation):

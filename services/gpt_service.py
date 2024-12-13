@@ -22,8 +22,8 @@ class GPTService:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.7,
-                max_tokens=500
+                temperature=0.9,
+                max_tokens=1000
             )
             
             # 응답 추출 및 검증

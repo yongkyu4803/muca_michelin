@@ -48,7 +48,7 @@ SHEET_COLUMNS = {
 }
 
 # 시트 범위 정의
-SHEET_RANGE = '시트1!A1:H100'
+SHEET_RANGE = '시트1!A:H'
 
 # 구글 시트 칼럼 순서 (A부터 H까지)
 SHEET_COLUMN_ORDER = [

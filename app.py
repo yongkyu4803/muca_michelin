@@ -15,6 +15,7 @@ def set_page_config():
 def header():
     st.title("🍽️ 뮤카슐랭")
     st.markdown("##### 오늘 점심은 어디서 먹을까?")
+    st.markdown("AI 추천이라 '딱 맞춤'이 아닐수도 있어요^^")
     st.markdown("---")
 
 def user_input_section():
@@ -35,34 +36,84 @@ def user_input_section():
     
     return status, use_pay_service
 
-def show_recommendation(result):
-    """추천 결과를 보여줍니다."""
+def show_recommendation(result, is_main=False):
+    """추천 결과를 카드 형태로 보여줍니다."""
     try:
-        if not isinstance(result, dict):
-            st.error("추천 결과를 생성할 수 없습니다.")
-            return
-            
-        # 3개의 칼럼으로 정보 표시
-        col1, col2, col3 = st.columns(3)
+        # 카드 스타일 CSS
+        st.markdown("""
+        <style>
+        .restaurant-card {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #eee;
+            height: 100%;
+        }
+        .restaurant-card.main {
+            background-color: #ffffff;
+            border: 1px solid #1f77b4;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .restaurant-card.sub {
+            transform: scale(0.8);
+            opacity: 0.9;
+        }
+        .restaurant-header {
+            color: #1f77b4;
+            margin-bottom: 10px;
+        }
+        .restaurant-header.main h3 {
+            color: #1f4068;
+        }
+        .restaurant-info {
+            margin: 5px 0;
+        }
+        .restaurant-review {
+            background-color: #e8f4f8;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        .restaurant-review.main {
+            background-color: #e3f2fd;
+        }
+        </style>
+        """, unsafe_allow_html=True)
         
-        with col1:
-            st.markdown("🏪 추천 식당")
-            st.markdown(f"#### {result.get('restaurant_name', '정보 없음')}")
-            
-        with col2:
-            st.markdown("🍽️ 추천 메뉴")
-            st.markdown(f"#### {result.get('menu', '정보 없음')}")
-            
-        with col3:
-            st.markdown("📍 주소")
-            st.markdown(f"#### {result.get('address', '정보 없음')}")
-        
-        # 추천 이유 (이모지를 텍스트 앞에 추가)
-        if result.get('review'):
-            st.info(f"💡 {result['review']}")
+        # 카드 내용
+        card_class = "main" if is_main else "sub"
+        st.markdown(f"""
+        <div class="restaurant-card {card_class}">
+            <div class="restaurant-header {card_class}">
+                <h3>🏪 {result.get('restaurant_name', '정보 없음')}</h3>
+                <p><i>{result.get('category', '')}</i></p>
+            </div>
+            <div class="restaurant-info">
+                <p>🍽️ {result.get('menu', '정보 없음')}</p>
+                <p>📍 {result.get('address', '정보 없음')}</p>
+            </div>
+            <div class="restaurant-review {card_class}">
+                💡 {result.get('review', '')}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
                 
     except Exception as e:
         st.error("추천 결과를 표시하는 중 오류가 발생했습니다.")
+
+def footer():
+    """푸터 섹션을 추가합니다."""
+    st.markdown("---")
+    st.markdown(
+        """
+        <div style="text-align: center; color: #666; padding: 20px;">
+            <p>Made with ❤️ by GQ_ykpark</p>
+            <p style="font-size: 0.8em;">© 2024 뮤카슐랭. All rights reserved.</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 def main():
     set_page_config()
@@ -71,20 +122,27 @@ def main():
     # 사용자 입력 섹션
     status, use_pay_service = user_input_section()
     
-    # 추천 버튼
+    # 추천 버튼과 결과 표시
     if st.button("메뉴 추천받기", type="primary", use_container_width=True):
         if not status:
             st.warning("오늘의 상태를 입력해주세요!")
-            return
-            
-        with st.spinner("맛있는 메뉴를 추천하고 있습니다..."):
-            try:
+        else:
+            with st.spinner("추천을 생성하는 중..."):
                 recommendation_engine = RecommendationEngine()
-                result = recommendation_engine.get_recommendation(status, use_pay_service)
-                show_recommendation(result)
+                recommendations = recommendation_engine.get_recommendation(status, use_pay_service)
+                
+                # 3개의 카드를 한 줄에 표시
+                cols = st.columns([4, 3, 3])  # 메인 카드는 더 넓게
+                if recommendations:
+                    # 메인 카드
+                    with cols[0]:
+                        show_recommendation(recommendations[0], is_main=True)
                     
-            except Exception as e:
-                st.error("추천을 생성하는 중 오류가 발생했습니다.")
+                    # 서브 카드들
+                    if len(recommendations) > 1:
+                        for idx, recommendation in enumerate(recommendations[1:3], 1):
+                            with cols[idx]:
+                                show_recommendation(recommendation, is_main=False)
     
     # 하단 정보
     st.markdown("---")
@@ -117,6 +175,9 @@ def main():
         
         💡 입력한 정보는 실시간으로 반영됩니다.
         """)
+    
+    # 푸터 추가
+    footer()
 
 if __name__ == "__main__":
     main()

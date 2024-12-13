@@ -16,7 +16,7 @@ class SheetsService:
         self.service = build('sheets', 'v4', credentials=self.creds)
         self.sheet = self.service.spreadsheets()
 
-    def get_data(self, range_name):
+    def get_data(self, range_name='시트1!A:H'):
         """구글 시트에서 데이터를 가져옵니다."""
         try:
             result = self.sheet.values().get(
@@ -39,7 +39,7 @@ class SheetsService:
     def get_pay_service_restaurants(self):
         """식권대장 사용 가능한 식당 목록을 가져옵니다."""
         try:
-            df = self.get_data('시트1!A1:H100')  # 전체 데이터 가져오기
+            df = self.get_data()  # 'A1:H100' 대신 기본값 사용
             # pay 칼럼이 'Y'인 식당만 필터링
             pay_restaurants = df[df['식권대장'] == 'Y']['식당명'].tolist()
             return pay_restaurants
@@ -51,7 +51,7 @@ class SheetsService:
     def get_alternative_restaurant(self, category, pay_service_only=False):
         """대체 식당을 추천합니다."""
         try:
-            df = self.get_data('시트1!A1:H100')
+            df = self.get_data()  # 'A1:H100' 대신 기본값 사용
             
             # 기본 필터: 같은 카테고리
             mask = df['카테고리'] == category
