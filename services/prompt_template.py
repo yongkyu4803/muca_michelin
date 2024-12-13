@@ -27,6 +27,9 @@ def generate_prompt(user_status, restaurants_data):
     
     return f"""오늘의 상태가 "{user_status}"일 때, 다음 식당 목록에서 적절한 곳을 추천해주세요.
 
+    - 감정1과 감정2의 내용과 한줄평을 참고하세요
+    - 약간의 랜덤한 선택이 필요합니다.
+
 사용 가능한 식당 목록:
 {restaurants_list}
 
