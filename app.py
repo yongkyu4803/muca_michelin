@@ -11,6 +11,14 @@ def set_page_config():
         layout="wide",
         initial_sidebar_state="collapsed"
     )
+    # 여기에 메타 태그 추가
+    st.markdown("""
+        <head>
+            <meta property="og:title" content="뮤카슐랭 - AI 점심 메뉴 추천">
+            <meta property="og:description" content="오늘 점심은 어디서 먹을까? AI가 추천해주는 맞춤형 메뉴">
+            <meta property="og:type" content="website">
+        </head>
+    """, unsafe_allow_html=True)
 
 def header():
     st.title("🍽️ 뮤카슐랭")

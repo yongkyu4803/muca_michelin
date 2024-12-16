@@ -28,7 +28,9 @@ class GPTService:
             
             # 응답 추출 및 검증
             recommendation = response.choices[0].message.content.strip()
-            if not all(key in recommendation for key in ['카테고리:', '메뉴:', '식당명:', '주소:', '한줄평:']):
+            # 필수 필드 모두 포함되어 있는지 확인 (감정1, 감정2 포함)
+            required_fields = ['카테고리:', '감정1:', '감정2:', '메뉴:', '식당명:', '주소:', '한줄평:']
+            if not all(key in recommendation for key in required_fields):
                 raise ValueError("GPT 응답이 올바른 형식이 아닙니다.")
                 
             return recommendation
